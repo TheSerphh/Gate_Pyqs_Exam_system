@@ -37,8 +37,14 @@
             background: var(--bg);
             color: var(--text);
             height: 100vh;
-            overflow: hidden;
+            /* overflow:hidden only applies during exam — toggled via JS */
+            overflow: auto;
             user-select: none
+        }
+
+        /* Exam and result screens need overflow:hidden on body to prevent double scroll */
+        body.in-exam {
+            overflow: hidden
         }
 
         /* ── UPLOAD ── */
@@ -48,8 +54,7 @@
             align-items: center;
             justify-content: flex-start;
             min-height: 100vh;
-            overflow-y: auto;
-            padding: 24px 20px 40px;
+            padding: 24px 20px 60px;
             gap: 16px;
             background: linear-gradient(135deg, #08101e 0%, #1a3a5c 60%, #08101e 100%)
         }
@@ -95,8 +100,10 @@
             text-align: center
         }
 
+        /* FIX: Upload box — consistent width, no overflow */
         .upload-box {
             width: 560px;
+            max-width: 100%;
             background: rgba(255, 255, 255, 0.055);
             border: 2px dashed rgba(255, 255, 255, 0.22);
             border-radius: 18px;
@@ -141,31 +148,42 @@
             font-size: 0.88rem;
             font-weight: 700;
             cursor: pointer;
-            transition: background .2s
+            transition: background .2s;
+            display: inline-block
         }
 
         .browse-btn:hover {
             background: #e08e00
         }
 
-        #json-file-input {
-            display: none
+        /* FIX: Hide native file input completely — no visible element, no label leak */
+        #jf {
+            display: none !important;
+            visibility: hidden;
+            position: absolute;
+            width: 0;
+            height: 0;
+            opacity: 0;
+            pointer-events: none
         }
 
         /* ── MODE SWITCHER ── */
+        /* FIX: Equal sizing for both mode buttons */
         .mode-switcher {
             display: flex;
             background: rgba(255, 255, 255, 0.07);
             border-radius: 12px;
             padding: 5px;
             width: 560px;
+            max-width: 100%;
             border: 1px solid rgba(255, 255, 255, 0.1);
             gap: 4px
         }
 
         .mode-btn {
             flex: 1;
-            padding: 10px 8px;
+            min-width: 0;
+            padding: 12px 8px;
             text-align: center;
             border-radius: 9px;
             cursor: pointer;
@@ -174,23 +192,26 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 3px
+            gap: 4px
         }
 
         .mode-icon {
-            font-size: 1.4rem
+            font-size: 1.4rem;
+            line-height: 1
         }
 
         .mode-label {
             font-size: 0.78rem;
             font-weight: 700;
             letter-spacing: .3px;
-            color: inherit
+            color: inherit;
+            white-space: nowrap
         }
 
         .mode-desc {
             font-size: 0.62rem;
-            color: #4a6a8a
+            color: #4a6a8a;
+            white-space: nowrap
         }
 
         .mode-btn.active {
@@ -210,6 +231,7 @@
         /* ── CONFIG BOX (shared wrapper style) ── */
         .cfg-box {
             width: 560px;
+            max-width: 100%;
             background: rgba(255, 255, 255, 0.07);
             border-radius: 16px;
             padding: 20px;
@@ -392,13 +414,15 @@
         }
 
         /* ── TOPIC PANEL ── */
+        /* FIX: Subject name and meta no longer clipped — proper flex layout */
         #topic-panel .subj-accordion {
             display: flex;
             flex-direction: column;
             gap: 5px;
-            max-height: 290px;
+            max-height: 420px;
             overflow-y: auto;
-            padding-right: 3px
+            overflow-x: hidden;
+            padding-right: 4px
         }
 
         .subj-block {
@@ -415,7 +439,10 @@
             background: rgba(255, 255, 255, 0.08);
             cursor: pointer;
             transition: background .15s;
-            user-select: none
+            user-select: none;
+            min-width: 0;
+            overflow: hidden
+                /* FIX: clip children that overflow row */
         }
 
         .subj-hdr:hover {
@@ -429,6 +456,8 @@
         .subj-chk {
             width: 17px;
             height: 17px;
+            min-width: 17px;
+            /* FIX: prevent shrink */
             border-radius: 4px;
             border: 2px solid rgba(255, 255, 255, 0.32);
             flex-shrink: 0;
@@ -452,20 +481,31 @@
             font-weight: 700
         }
 
+        /* FIX: Subject name — truncate with ellipsis properly */
         .subj-name {
             flex: 1;
+            min-width: 0;
             color: white;
             font-size: 0.84rem;
-            font-weight: 600
+            font-weight: 600;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap
         }
 
+        /* FIX: Meta count — no longer squeezed off screen */
         .subj-meta {
             font-size: 0.68rem;
-            color: #5a7a9a
+            color: #7fa8c8;
+            flex-shrink: 0;
+            white-space: nowrap;
+            background: rgba(255, 255, 255, 0.07);
+            padding: 2px 7px;
+            border-radius: 8px
         }
 
         .subj-arrow {
-            color: #5a7a9a;
+            color: #7fa8c8;
             font-size: 0.7rem;
             transition: transform .2s;
             flex-shrink: 0
@@ -494,7 +534,8 @@
             padding: 5px 5px;
             border-radius: 6px;
             cursor: pointer;
-            transition: background .12s
+            transition: background .12s;
+            min-width: 0
         }
 
         .topic-row:hover {
@@ -504,6 +545,8 @@
         .topic-chk {
             width: 14px;
             height: 14px;
+            min-width: 14px;
+            /* FIX: prevent shrink */
             border-radius: 3px;
             border: 1.5px solid rgba(255, 255, 255, 0.26);
             flex-shrink: 0;
@@ -521,10 +564,15 @@
             font-weight: 700
         }
 
+        /* FIX: Topic name no longer clipped */
         .topic-name {
             flex: 1;
+            min-width: 0;
             color: #a0bcdc;
-            font-size: 0.76rem
+            font-size: 0.76rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap
         }
 
         .topic-cnt {
@@ -533,7 +581,8 @@
             background: rgba(255, 255, 255, 0.06);
             padding: 1px 7px;
             border-radius: 8px;
-            flex-shrink: 0
+            flex-shrink: 0;
+            white-space: nowrap
         }
 
         .sel-pills {
@@ -604,7 +653,9 @@
         #exam-screen {
             display: none;
             height: 100vh;
-            flex-direction: column
+            max-height: 100vh;
+            flex-direction: column;
+            overflow: hidden
         }
 
         .exam-hdr {
@@ -1358,8 +1409,10 @@
         #result-screen {
             display: none;
             height: 100vh;
+            max-height: 100vh;
             flex-direction: column;
-            background: var(--bg)
+            background: var(--bg);
+            overflow: hidden
         }
 
         .res-hdr {
@@ -1540,7 +1593,6 @@
             flex-shrink: 0
         }
 
-        /* Topic breakdown in results */
         .topic-bkdn {
             background: white;
             border-radius: 12px;
@@ -1870,15 +1922,19 @@
             <div class="tagline">Official GATE PYQ Simulator · 1987–2025 · GateOverflow Question Bank</div>
         </div>
 
+        <!-- FIX 1: upload-box is the only clickable area; native input is fully hidden -->
         <div class="upload-box" id="upload-box">
             <div class="upload-icon">🗃️</div>
             <h2>Drop your GATE JSON Question Bank here</h2>
             <p>Supports GateOverflow / GateQuest format<br>2608 questions · MCQ + MSQ + NAT · LaTeX · 1987–2025</p>
+            <!-- Styled button triggers the hidden input -->
             <button class="browse-btn" onclick="document.getElementById('jf').click()">Browse JSON File</button>
+            <!-- FIX: id="jf" to match JS; display:none hides both button and filename label -->
             <input type="file" id="jf" accept=".json">
         </div>
 
         <!-- MODE SWITCHER (revealed after JSON loads) -->
+        <!-- FIX 3: equal flex children, consistent sizing -->
         <div class="mode-switcher" id="mode-sw" style="display:none">
             <div class="mode-btn active" id="mb-paper" onclick="switchMode('paper')">
                 <div class="mode-icon">📄</div>
@@ -1943,6 +1999,7 @@
             <div class="sel-pills" id="sel-pills" style="display:none"></div>
 
             <!-- Subject → Topic accordion -->
+            <!-- FIX 2: accordion rows now use proper min-width:0 + text-overflow truncation -->
             <div class="subj-accordion" id="subj-accordion"></div>
 
             <!-- Topic test filters -->
@@ -2146,9 +2203,9 @@
         let answers = {}, statuses = {};
         let timerInt = null, timeLeft = 10800;
         let lockedSecs = new Set(), pendingSec = null;
-        let selSubjs = new Set(), selDiffs = new Set();  // paper mode
-        let selTopics = new Map(); // "Subject||Topic" -> true  (topic mode)
-        let currentMode = 'paper'; // 'paper' | 'topic'
+        let selSubjs = new Set(), selDiffs = new Set();
+        let selTopics = new Map();
+        let currentMode = 'paper';
 
         const S = { NV: 'nv', NA: 'na', ANS: 'ans', MRK: 'mrk', MAS: 'mas' };
 
@@ -2157,6 +2214,12 @@
         // ═══════════════════════════════════════════════════════
         const uploadBox = document.getElementById('upload-box');
         const jfInput = document.getElementById('jf');
+
+        // FIX: click on box itself also triggers file picker (but not on the button — button has its own onclick)
+        uploadBox.addEventListener('click', e => {
+            if (e.target.classList.contains('browse-btn')) return;
+            jfInput.click();
+        });
         uploadBox.addEventListener('dragover', e => { e.preventDefault(); uploadBox.classList.add('drag-over') });
         uploadBox.addEventListener('dragleave', () => uploadBox.classList.remove('drag-over'));
         uploadBox.addEventListener('drop', e => { e.preventDefault(); uploadBox.classList.remove('drag-over'); const f = [...e.dataTransfer.files].find(f => f.name.endsWith('.json')); if (f) loadJSON(f) });
@@ -2241,7 +2304,6 @@
         //  FULL PAPER MODE UI
         // ═══════════════════════════════════════════════════════
         function buildPaperUI() {
-            // Stats row
             const mcq = bank.filter(q => q.displayType === 'MCQ').length;
             const msq = bank.filter(q => q.displayType === 'MSQ').length;
             const nat = bank.filter(q => q.displayType === 'NAT').length;
@@ -2251,16 +2313,13 @@
     <div class="cstat"><div class="cv">${msq}</div><div class="cl">MSQ</div></div>
     <div class="cstat"><div class="cv">${nat}</div><div class="cl">NAT</div></div>`;
 
-            // Year dropdown
             const years = [...new Set(bank.map(q => q.year).filter(Boolean))].sort((a, b) => b - a);
             const ysel = document.getElementById('f-year');
             ysel.innerHTML = '<option value="all">All Years (1987–2025)</option>' + years.map(y => `<option value="${y}">${y}</option>`).join('');
 
-            // Subject tags
             const subjs = [...new Set(bank.map(q => q.subject))].sort();
             document.getElementById('subj-tags').innerHTML = subjs.map(s => `<div class="stag" data-s="${s}" onclick="toggleSubj(this,'${escAttr(s)}')">${s}</div>`).join('');
 
-            // Difficulty tags
             document.getElementById('diff-tags').innerHTML = ['Easy', 'Normal', 'Medium', 'Hard'].map(d =>
                 `<div class="dtag" data-d="${d}" onclick="toggleDiff(this,'${d}')">${d}</div>`).join('');
 
@@ -2303,7 +2362,6 @@
         //  TOPIC MODE UI
         // ═══════════════════════════════════════════════════════
         function buildTopicUI() {
-            // Build subject→topic tree from bank
             const tree = new Map();
             bank.forEach(q => {
                 const s = q.subject || 'Unknown';
@@ -2322,7 +2380,7 @@
                 block.innerHTML = `
       <div class="subj-hdr" onclick="toggleSubjBlock(this,'${escAttr(subj)}')">
         <div class="subj-chk" id="sc-${escId(subj)}"></div>
-        <div class="subj-name">${subj}</div>
+        <div class="subj-name" title="${escAttr(subj)}">${subj}</div>
         <div class="subj-meta">${subjTotal} Qs</div>
         <div class="subj-arrow">▶</div>
       </div>
@@ -2330,7 +2388,7 @@
         ${[...topics.entries()].sort((a, b) => b[1] - a[1]).map(([topic, cnt]) => `
           <div class="topic-row" onclick="toggleTopic('${escAttr(subj)}','${escAttr(topic)}',this)">
             <div class="topic-chk" id="tc-${escId(subj + '||' + topic)}"></div>
-            <div class="topic-name">${topic}</div>
+            <div class="topic-name" title="${escAttr(topic)}">${topic}</div>
             <div class="topic-cnt">${cnt}</div>
           </div>`).join('')}
       </div>`;
@@ -2359,7 +2417,6 @@
         }
 
         function updateSubjCheck(subj) {
-            // Count topics for this subj selected vs total
             const allTopics = [...document.querySelectorAll(`#tl-${escId(subj)} .topic-chk`)];
             const selCount = [...selTopics.keys()].filter(k => k.startsWith(subj + '||')).length;
             const chk = document.getElementById('sc-' + escId(subj));
@@ -2382,7 +2439,6 @@
             if (!selTopics.has(key)) return;
             const { subj } = selTopics.get(key);
             selTopics.delete(key);
-            // Uncheck the topic row checkbox
             const chkEl = document.getElementById('tc-' + escId(key));
             if (chkEl) chkEl.classList.remove('on');
             updateSubjCheck(subj);
@@ -2443,7 +2499,6 @@
                 else if (ord === 'subject') pool.sort((a, b) => a.subject.localeCompare(b.subject) || a.year - b.year);
                 else pool.sort((a, b) => a.year - b.year || a.number - b.number);
             } else {
-                // topic mode
                 const tp = document.getElementById('tf-type').value;
                 const df = document.getElementById('tf-diff').value;
                 const mx = document.getElementById('tf-max').value;
@@ -2470,14 +2525,12 @@
             sections = buildSections(questions);
             curSec = 0; curQ = sections[0].indices[0];
 
-            // Timer: proportional to question count vs 65q=3h
             timeLeft = Math.min(10800, Math.max(1800, Math.ceil(questions.length / 65 * 10800)));
 
             setP(100);
             await new Promise(r => setTimeout(r, 300));
             hideLoad();
 
-            // Exam label
             let label = 'GATE CS';
             if (currentMode === 'topic') {
                 const topics = [...selTopics.values()].map(t => t.topic);
@@ -2493,6 +2546,7 @@
 
             document.getElementById('upload-screen').style.display = 'none';
             document.getElementById('exam-screen').style.display = 'flex';
+            document.body.classList.add('in-exam');
 
             renderSecTabs(); renderPalette(); showQ(curQ); startTimer(); buildNatKB();
         }
@@ -2503,9 +2557,7 @@
                 if (!map.has(q.section)) map.set(q.section, []);
                 map.get(q.section).push(i);
             });
-            // In topic mode with only CS topics, only 1 section — show topic groups instead
             if (currentMode === 'topic' && map.size <= 1) {
-                // Re-section by subject for topic mode
                 const smap = new Map();
                 qs.forEach((q, i) => {
                     if (!smap.has(q.subject)) smap.set(q.subject, []);
@@ -2564,15 +2616,12 @@
             const q = questions[idx];
             if (statuses[idx] === S.NV) statuses[idx] = S.NA;
 
-            // Sync section
             const si = sections.findIndex(s => s.indices.includes(idx));
             if (si >= 0 && si !== curSec) { curSec = si; renderSecTabs() }
 
-            // Header info
             document.getElementById('q-num-lbl').textContent = `Question ${q.number}`;
             document.getElementById('q-global').textContent = `Q.${idx + 1} of ${questions.length}`;
 
-            // Type badge
             const b = document.getElementById('q-badge');
             b.textContent = q.displayType;
             b.className = 'q-type-badge badge-' + (q.displayType === 'NAT' ? 'nat' : q.displayType === 'MSQ' ? 'msq' : 'mcq');
@@ -2580,7 +2629,6 @@
             document.getElementById('q-marks').textContent = `+${q.marks}`;
             document.getElementById('q-neg').textContent = q.negMarks > 0 ? `-${q.negMarks}` : 'None';
 
-            // Chips
             document.getElementById('q-subj-chip').innerHTML = q.subject ? `<span class="chip">${q.subject}</span>` : '';
             document.getElementById('q-topic-chip').innerHTML = (q.topic && q.topic !== 'General') ? `<span class="chip chip-topic">${q.topic}</span>` : '';
             document.getElementById('q-diff-chip').innerHTML = q.difficulty ? `<span class="chip-diff diff-${q.difficulty}">${q.difficulty}</span>` : '';
@@ -2590,14 +2638,12 @@
             if (q.sourceURL) { srcLink.href = q.sourceURL; srcLink.style.display = 'inline' }
             else srcLink.style.display = 'none';
 
-            // Question text
             const qtEl = document.getElementById('q-text');
             qtEl.textContent = q.question;
             renderKaTeX(qtEl);
 
             document.getElementById('msq-hint').style.display = q.isMSQ ? 'block' : 'none';
 
-            // Options / NAT
             const optGrid = document.getElementById('opts-grid');
             const natArea = document.getElementById('nat-area');
             if (q.isNAT) {
@@ -2767,6 +2813,7 @@
         function showResults() {
             document.getElementById('exam-screen').style.display = 'none';
             document.getElementById('result-screen').style.display = 'flex';
+            document.body.classList.remove('in-exam');
 
             let score = 0, maxScore = 0, correct = 0, wrong = 0, partial = 0, skip = 0;
             const qRes = [];
@@ -2781,13 +2828,11 @@
                 score += pts;
                 if (r === 'correct') correct++; else if (r === 'wrong') wrong++; else if (r === 'partial') partial++; else skip++;
 
-                // Subject stats
                 const subj = q.subject || 'General';
                 if (!subjMap[subj]) subjMap[subj] = { c: 0, w: 0, s: 0, t: 0, pts: 0, maxPts: 0 };
                 subjMap[subj].t++; subjMap[subj].maxPts += q.marks; subjMap[subj].pts += pts;
                 if (r === 'correct') subjMap[subj].c++; else if (r === 'wrong') subjMap[subj].w++; else subjMap[subj].s++;
 
-                // Topic stats
                 const tk = subj + '||' + (q.topic || 'General');
                 if (!topicMap[tk]) topicMap[tk] = { subj, topic: q.topic || 'General', c: 0, w: 0, s: 0, t: 0 };
                 topicMap[tk].t++;
@@ -2803,7 +2848,6 @@
             const used = Math.max(0, totalTime - timeLeft);
             const um = Math.floor(used / 60), us = used % 60;
 
-            // Subject bars
             const subjRows = Object.entries(subjMap).sort((a, b) => b[1].t - a[1].t).map(([s, st]) => {
                 const acc = st.t ? st.c / st.t * 100 : 0;
                 const col = acc >= 70 ? '#2e7d32' : acc >= 40 ? '#f57c00' : '#d32f2f';
@@ -2814,7 +2858,6 @@
     </div>`;
             }).join('');
 
-            // Topic table (only in topic mode or if multiple topics)
             const topicKeys = Object.keys(topicMap);
             let topicSection = '';
             if (currentMode === 'topic' || topicKeys.length > 1) {
@@ -2936,6 +2979,7 @@
             clearInterval(timerInt);
             questions = []; sections = []; answers = {}; statuses = {}; bank = [];
             selSubjs = new Set(); selDiffs = new Set(); selTopics = new Map();
+            document.body.classList.remove('in-exam');
             document.getElementById('result-screen').style.display = 'none';
             document.getElementById('paper-panel').style.display = 'none';
             document.getElementById('topic-panel').style.display = 'none';
@@ -2948,12 +2992,12 @@
         document.addEventListener('keydown', e => {
             const inExam = document.getElementById('exam-screen').style.display !== 'none';
             if (!inExam) return;
-            if ((e.ctrlKey || e.metaKey) && ['c', 'v', 'a', 's', 'p'].includes(e.key.toLowerCase())) e.preventDefault();
+            //if ((e.ctrlKey || e.metaKey) && ['c', 'v', 'a', 's', 'p'].includes(e.key.toLowerCase())) e.preventDefault();
             if (e.key === 'ArrowRight' || e.key === 'PageDown') navQ(1);
             if (e.key === 'ArrowLeft' || e.key === 'PageUp') navQ(-1);
             if (e.key === 'F11') { e.preventDefault(); document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.() }
         });
-        document.addEventListener('contextmenu', e => { if (document.getElementById('exam-screen').style.display !== 'none') e.preventDefault() });
+        //document.addEventListener('contextmenu', e => { if (document.getElementById('exam-screen').style.display !== 'none') e.preventDefault() });
     </script>
 </body>
 
