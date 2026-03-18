@@ -978,6 +978,53 @@
             user-select: text
         }
 
+        /* ── CODE BLOCKS inside questions ── */
+        .q-text pre {
+            background: #1e2a3a;
+            color: #e8f0fe;
+            border-radius: 8px;
+            padding: 14px 16px;
+            margin: 10px 0;
+            overflow-x: auto;
+            font-family: 'Courier New', Consolas, 'Lucida Console', monospace;
+            font-size: 0.85rem;
+            line-height: 1.6;
+            border-left: 3px solid var(--accent);
+            white-space: pre;
+            user-select: text
+        }
+
+        .q-text code {
+            font-family: 'Courier New', Consolas, 'Lucida Console', monospace;
+            font-size: 0.88em;
+            background: #eef2fd;
+            color: #1a3a5c;
+            padding: 1px 5px;
+            border-radius: 4px;
+            user-select: text
+        }
+
+        .q-text pre code {
+            background: none;
+            color: inherit;
+            padding: 0;
+            border-radius: 0;
+            font-size: inherit
+        }
+
+        /* language label on code blocks */
+        .q-text pre[data-lang]::before {
+            content: attr(data-lang);
+            display: block;
+            font-size: 0.65rem;
+            color: var(--accent);
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            font-family: 'Segoe UI', sans-serif
+        }
+
         .msq-hint {
             background: #e3f2fd;
             border-left: 3px solid #1565c0;
@@ -2639,7 +2686,7 @@
             else srcLink.style.display = 'none';
 
             const qtEl = document.getElementById('q-text');
-            qtEl.textContent = q.question;
+            qtEl.innerHTML = renderQuestionText(q.question);
             renderKaTeX(qtEl);
 
             document.getElementById('msq-hint').style.display = q.isMSQ ? 'block' : 'none';
@@ -2662,16 +2709,80 @@
                 }).join('');
                 q.options.forEach((opt, oi) => {
                     const el = document.getElementById(`ot-${idx}-${oi}`);
-                    if (el) { el.textContent = opt; renderKaTeX(el) }
+                    if (el) { el.innerHTML = renderQuestionText(opt); renderKaTeX(el) }
                 });
             }
             renderPalette(); updateStats(); updateProgress();
             document.getElementById('q-content').scrollTop = 0;
         }
 
+        // ═══════════════════════════════════════════════════════
+        //  QUESTION TEXT RENDERER
+        //  Handles: ```lang...``` fenced code, `inline code`,
+        //           <br> / \n newlines, then defers to KaTeX
+        // ═══════════════════════════════════════════════════════
+        function renderQuestionText(text) {
+            if (!text) return '';
+
+            // 1. Protect existing $...$ LaTeX by temporarily replacing with placeholders
+            //    so code-block processing doesn't corrupt math expressions.
+            //    We'll restore them after HTML is built.
+            const mathPlaceholders = [];
+            let t = text;
+
+            // Protect display math $$...$$ and \[...\]
+            t = t.replace(/\$\$([\s\S]*?)\$\$/g, (m) => { mathPlaceholders.push(m); return `\x00MATH${mathPlaceholders.length - 1}\x00` });
+            t = t.replace(/\\\[([\s\S]*?)\\\]/g, (m) => { mathPlaceholders.push(m); return `\x00MATH${mathPlaceholders.length - 1}\x00` });
+            // Protect inline math $...$ and \(...\)
+            t = t.replace(/\$([^\$\n]+?)\$/g, (m) => { mathPlaceholders.push(m); return `\x00MATH${mathPlaceholders.length - 1}\x00` });
+            t = t.replace(/\\\(([\s\S]*?)\\\)/g, (m) => { mathPlaceholders.push(m); return `\x00MATH${mathPlaceholders.length - 1}\x00` });
+
+            // 2. Process fenced code blocks: ```lang\ncode\n``` or ```\ncode\n```
+            t = t.replace(/```(\w*)\n?([\s\S]*?)```/g, (_, lang, code) => {
+                const safeLang = lang ? escH(lang.trim()) : '';
+                const safeCode = escH(code.replace(/^\n/, '').replace(/\n$/, ''));
+                const langAttr = safeLang ? ` data-lang="${safeLang}"` : '';
+                return `<pre${langAttr}><code>${safeCode}</code></pre>`;
+            });
+
+            // 3. Process inline code `...` (not inside pre blocks)
+            // Split on pre blocks to avoid touching code inside them
+            const parts = t.split(/(<pre[\s\S]*?<\/pre>)/g);
+            t = parts.map((part, i) => {
+                if (i % 2 === 1) return part; // it's a <pre> block, leave alone
+                return part.replace(/`([^`\n]+?)`/g, (_, code) => `<code>${escH(code)}</code>`);
+            }).join('');
+
+            // 4. Convert <br> tags and bare \n newlines outside pre blocks
+            const parts2 = t.split(/(<pre[\s\S]*?<\/pre>)/g);
+            t = parts2.map((part, i) => {
+                if (i % 2 === 1) return part;
+                return part
+                    .replace(/<br\s*\/?>/gi, '<br>')   // normalise existing <br>
+                    .replace(/\n/g, '<br>');             // bare newlines → <br>
+            }).join('');
+
+            // 5. Restore math placeholders
+            t = t.replace(/\x00MATH(\d+)\x00/g, (_, idx) => mathPlaceholders[parseInt(idx)]);
+
+            return t;
+        }
+
         function renderKaTeX(el) {
             if (typeof renderMathInElement === 'function') {
-                try { renderMathInElement(el, { delimiters: [{ left: '$$', right: '$$', display: true }, { left: '$', right: '$', display: false }, { left: '\\(', right: '\\)', display: false }, { left: '\\[', right: '\\]', display: true }], throwOnError: false }) } catch (e) { }
+                try {
+                    // Skip rendering inside <pre> and <code> tags to avoid mangling code blocks
+                    renderMathInElement(el, {
+                        delimiters: [
+                            { left: '$$', right: '$$', display: true },
+                            { left: '$', right: '$', display: false },
+                            { left: '\\(', right: '\\)', display: false },
+                            { left: '\\[', right: '\\]', display: true }
+                        ],
+                        ignoredTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                        throwOnError: false
+                    })
+                } catch (e) { }
             }
         }
 
@@ -2992,12 +3103,12 @@
         document.addEventListener('keydown', e => {
             const inExam = document.getElementById('exam-screen').style.display !== 'none';
             if (!inExam) return;
-            //if ((e.ctrlKey || e.metaKey) && ['c', 'v', 'a', 's', 'p'].includes(e.key.toLowerCase())) e.preventDefault();
+            if ((e.ctrlKey || e.metaKey) && ['c', 'v', 'a', 's', 'p'].includes(e.key.toLowerCase())) e.preventDefault();
             if (e.key === 'ArrowRight' || e.key === 'PageDown') navQ(1);
             if (e.key === 'ArrowLeft' || e.key === 'PageUp') navQ(-1);
             if (e.key === 'F11') { e.preventDefault(); document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.() }
         });
-        //document.addEventListener('contextmenu', e => { if (document.getElementById('exam-screen').style.display !== 'none') e.preventDefault() });
+        document.addEventListener('contextmenu', e => { if (document.getElementById('exam-screen').style.display !== 'none') e.preventDefault() });
     </script>
 </body>
 
